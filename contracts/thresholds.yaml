@@ -1,0 +1,30 @@
+# Criterios operacionales DEL PROYECTO. No son umbrales universales de "validez causal":
+# ver docs/02_traduccion_operacional.md para la justificacion de cada uno.
+
+positivity:
+  hard_min: 0.01        # propensity minimo por debajo del cual se bloquea
+  hard_max: 0.99
+  warning_min: 0.05     # banda de advertencia (debe coincidir con causal_contract.yaml)
+  warning_max: 0.95
+
+drift:
+  warning_psi: 0.10
+  critical_psi: 0.25
+
+missingness:
+  warning_rate: 0.05
+  critical_rate: 0.20
+
+domain:
+  warning_out_of_range_rate: 0.10   # fraccion de filas fuera de [q01, q99] de referencia, por variable
+  critical_out_of_range_rate: 0.30
+
+sensitivity:
+  robust_rv: 0.05       # valor de robustez (Cinelli-Hazlett) a partir del cual se informa ROBUST; si no, REVIEW
+
+refutation:
+  p_value_min: 0.05     # un refutador PASA si no rechaza la hipotesis nula (p > p_value_min)
+  num_simulations: 50
+
+synthetic_recovery:
+  max_abs_error: 0.40   # |ATE estimado - ATE verdadero| tolerado en la prueba sintetica

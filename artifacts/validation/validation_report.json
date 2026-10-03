@@ -1,0 +1,151 @@
+{
+  "model_version": "1.0.0",
+  "ok": true,
+  "failures": [],
+  "identification": {
+    "identified": true,
+    "estimand_type": "EstimandType.NONPARAMETRIC_ATE",
+    "strategy": "backdoor",
+    "backdoor_variables": [
+      "x0",
+      "x1",
+      "x10",
+      "x11",
+      "x12",
+      "x13",
+      "x14",
+      "x15",
+      "x16",
+      "x17",
+      "x18",
+      "x19",
+      "x2",
+      "x20",
+      "x21",
+      "x22",
+      "x23",
+      "x24",
+      "x3",
+      "x4",
+      "x5",
+      "x6",
+      "x7",
+      "x8",
+      "x9"
+    ]
+  },
+  "reference_validation": {
+    "status": "PASS",
+    "effect_estimation": "ALLOWED",
+    "checks": [
+      {
+        "name": "Schema",
+        "status": "PASS",
+        "detail": "esquema compatible con feature_schema.json",
+        "metrics": {
+          "n_rows": 1200,
+          "missing": [],
+          "unknown": []
+        }
+      },
+      {
+        "name": "Treatment coding",
+        "status": "PASS",
+        "detail": "valores [0, 1]; tasa de tratamiento 0.381",
+        "metrics": {
+          "treatment_rate": 0.38083333333333336
+        }
+      },
+      {
+        "name": "Versions & integrity",
+        "status": "PASS",
+        "detail": "versiones, hashes y metadatos de contrato, DAG y modelo son compatibles (audita artefactos, no la consistencia causal del tratamiento)",
+        "metrics": {}
+      },
+      {
+        "name": "Graph / contract",
+        "status": "PASS",
+        "detail": "ajuste por 25 covariables cumple el criterio de puerta trasera",
+        "metrics": {}
+      },
+      {
+        "name": "Missingness",
+        "status": "PASS",
+        "detail": "maxima tasa de nulos en una covariable: 0.0%",
+        "metrics": {}
+      },
+      {
+        "name": "Operational domain",
+        "status": "PASS",
+        "detail": "maxima fraccion de filas fuera de [q01, q99] de referencia en una variable: 2.0%",
+        "metrics": {}
+      },
+      {
+        "name": "Positivity",
+        "status": "PASS",
+        "detail": "propensity en [0.109, 0.718]; observaciones extremas 0.0%",
+        "metrics": {
+          "min_propensity": 0.10873562105430923,
+          "max_propensity": 0.7175484687165513,
+          "q01": 0.15706087407090477,
+          "q99": 0.653724487494226,
+          "extreme_share": 0.0,
+          "ess_ratio_treated": 0.9022569355050866,
+          "ess_ratio_control": 0.9583992237052807,
+          "n": 1200
+        }
+      },
+      {
+        "name": "Distribution shift",
+        "status": "PASS",
+        "detail": "PSI maximo 0.000 (x0); tasa de tratamiento 0.381 vs referencia 0.381",
+        "metrics": {
+          "psi_max": 0.0,
+          "psi_max_feature": "x0",
+          "ks_max": 0.0008333333333333334,
+          "treatment_rate": 0.38083333333333336,
+          "treatment_rate_reference": 0.38083333333333336,
+          "level": "ok"
+        }
+      },
+      {
+        "name": "SUTVA diagnostics",
+        "status": "REVIEW",
+        "detail": "NOT PROVABLE: no hay variable de agrupacion (cluster_column) para buscar estructura de interferencia; la ausencia de interferencia requiere justificacion sustantiva",
+        "metrics": {
+          "provable": false
+        }
+      },
+      {
+        "name": "Refutation (release)",
+        "status": "SKIPPED",
+        "detail": "sin reporte de release",
+        "metrics": {}
+      },
+      {
+        "name": "Unobserved confounding",
+        "status": "SKIPPED",
+        "detail": "sin reporte de release",
+        "metrics": {}
+      }
+    ]
+  },
+  "sensitivity": {
+    "status": "ROBUST",
+    "detail": "un confusor no observado tendria que explicar 27.0% de la varianza residual de T y de Y para anular la estimacion (22.7% para que el IC incluya 0). No prueba ausencia de confusion no observada.",
+    "metrics": {
+      "rv_q1": 0.26992790795516175,
+      "rv_q1_alpha05": 0.2273163556514313
+    }
+  },
+  "synthetic": {
+    "true_ate": 2.0,
+    "estimated_ate": 1.9672501765436734,
+    "ci_low": 1.8626641809563669,
+    "ci_high": 2.07183617213098,
+    "abs_error": 0.0327498234563266,
+    "max_abs_error": 0.4,
+    "n": 1500,
+    "passed": true
+  }
+}

@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+# Credenciales de Streamlit (historial externo, etc.): nunca se versionan
+.streamlit/secrets.toml
+.DS_Store

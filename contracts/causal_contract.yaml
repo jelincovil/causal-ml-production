@@ -1,0 +1,84 @@
+model:
+  name: causal_dml
+  version: "1.0.0"
+
+versions:
+  treatment_definition: "1.0.0"
+  preprocessing: "1.0.0"
+  causal_graph: "1.0.0"
+
+causal:
+  treatment: treatment
+  outcome: outcome
+  estimand: ATE
+
+  treatment_levels:
+    - 0
+    - 1
+
+  pre_treatment_covariates:
+    - x0
+    - x1
+    - x2
+    - x3
+    - x4
+    - x5
+    - x6
+    - x7
+    - x8
+    - x9
+    - x10
+    - x11
+    - x12
+    - x13
+    - x14
+    - x15
+    - x16
+    - x17
+    - x18
+    - x19
+    - x20
+    - x21
+    - x22
+    - x23
+    - x24
+
+  estimator:
+    method: econml.dml.LinearDML
+    model_y: LassoCV
+    model_t: LassoCV
+    cv_folds: 5
+    seed: 42
+
+validation:
+  schema:
+    unknown_columns: block
+    missing_required_columns: block
+
+  treatment:
+    invalid_values: block
+
+  missingness:
+    action: block        # se aplica solo al nivel critical de thresholds.yaml
+
+  domain:
+    action: block        # se aplica solo al nivel critical de thresholds.yaml
+
+  positivity:
+    min_propensity: 0.05
+    max_propensity: 0.95
+    action: warn         # fuera de la banda -> WARN; fuera de hard_min/hard_max -> BLOCK
+
+  drift:
+    action: warn         # incluso en nivel critical, el contrato solo advierte
+
+  refutation:
+    placebo: required
+    random_common_cause: required
+    data_subset: required
+
+  sensitivity:
+    required: true
+
+  sutva:
+    cluster_column: null # sin variable de agrupacion: el supuesto no es evaluable con estos datos

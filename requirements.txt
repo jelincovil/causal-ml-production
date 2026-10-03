@@ -1,0 +1,16 @@
+# Combinacion probada en Python 3.12 (version por defecto de Streamlit Community Cloud).
+# Versiones fijadas a proposito: una actualizacion automatica puede cambiar el comportamiento
+# del estimador o invalidar el artefacto causal_model.joblib (que es un pickle de econml/scikit-learn).
+streamlit==1.64.0
+econml==0.17.0
+dowhy==0.14
+scikit-learn==1.9.1
+numpy==2.4.6
+pandas==3.0.6
+scipy==1.15.3
+joblib==1.6.0
+networkx==3.7
+altair==6.3.0
+pyyaml==6.0.3
+jsonschema==4.26.0
+sqlalchemy==2.1.1

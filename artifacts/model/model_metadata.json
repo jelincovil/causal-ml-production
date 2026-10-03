@@ -1,0 +1,63 @@
+{
+  "model_name": "causal_dml",
+  "model_version": "1.0.0",
+  "treatment_name": "treatment",
+  "treatment_definition_version": "1.0.0",
+  "allowed_values": [
+    0,
+    1
+  ],
+  "preprocessing_version": "1.0.0",
+  "causal_graph_version": "1.0.0",
+  "estimand": "ATE",
+  "estimator": {
+    "method": "econml.dml.LinearDML",
+    "model_y": "LassoCV",
+    "model_t": "LassoCV",
+    "cv_folds": 5,
+    "seed": 42
+  },
+  "covariates": [
+    "x0",
+    "x1",
+    "x2",
+    "x3",
+    "x4",
+    "x5",
+    "x6",
+    "x7",
+    "x8",
+    "x9",
+    "x10",
+    "x11",
+    "x12",
+    "x13",
+    "x14",
+    "x15",
+    "x16",
+    "x17",
+    "x18",
+    "x19",
+    "x20",
+    "x21",
+    "x22",
+    "x23",
+    "x24"
+  ],
+  "n_train": 1200,
+  "training_data_sha256": "77d5af70ecc3826018b8d17fb1f063b1c877bfa8439981d4eea222a5958b2665",
+  "effect": {
+    "ate": 3.5273116325364198,
+    "se": 0.32600924006847176,
+    "ci_low": 2.8883452633749425,
+    "ci_high": 4.166278001697897
+  },
+  "library_versions": {
+    "python": "3.12.3",
+    "econml": "0.17.0",
+    "scikit-learn": "1.9.1",
+    "numpy": "2.4.6",
+    "pandas": "3.0.6"
+  },
+  "model_sha256": "fa83c09bcec5723ec1852e8a432fff8c629102f0cd70ae9ab6f94cabb0942425"
+}

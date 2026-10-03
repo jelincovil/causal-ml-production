@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validity-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install
+        run: pip install -r requirements-dev.txt
+
+      - name: Tests (schema, grafo, estimador, gates, monitoring, app)
+        run: pytest -q
+
+      # Falla (exit 1) si el dataset, el modelo o el perfil de referencia no son coherentes,
+      # si el estimando no es identificable, si una refutacion requerida no pasa,
+      # si la prueba sintetica no recupera el efecto o si la model card incumple su schema.
+      - name: Release validation
+        run: python scripts/validate_release.py

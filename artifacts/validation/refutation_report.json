@@ -1,0 +1,26 @@
+{
+  "model_version": "1.0.0",
+  "num_simulations": 50,
+  "p_value_min": 0.05,
+  "original_effect": 3.5273098057184495,
+  "refutations": {
+    "placebo_treatment": {
+      "status": "PASS",
+      "original_effect": 3.5273098057184495,
+      "refuted_effect": 0.02046230273805315,
+      "p_value": 0.4763279702471955
+    },
+    "random_common_cause": {
+      "status": "PASS",
+      "original_effect": 3.5273098057184495,
+      "refuted_effect": 3.5248103030318565,
+      "p_value": 0.35114169205630974
+    },
+    "data_subset": {
+      "status": "PASS",
+      "original_effect": 3.5273098057184495,
+      "refuted_effect": 3.618737999239243,
+      "p_value": 0.2891672452761199
+    }
+  }
+}

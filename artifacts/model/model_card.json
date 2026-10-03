@@ -1,0 +1,291 @@
+{
+  "schema_version": "causal-model-card-v1",
+  "estimando": {
+    "tipo": "ATE",
+    "formula": "E[Y(1) - Y(0)]"
+  },
+  "diseno_identificacion": {
+    "tipo": "observacional",
+    "metodo": "DML-PLR con cross-fitting (K=5, LassoCV nuisances), econml.dml.LinearDML"
+  },
+  "supuestos": [
+    {
+      "id": "schema",
+      "nombre": "Esquema de entrada conforme al contrato",
+      "nivel": "empirico",
+      "ambito": "datos",
+      "funcion": "validation.schema_checks.check_schema",
+      "descripcion": "Que las columnas, los tipos y los nulos de la entrada coinciden con feature_schema.json; si no, el estimador no recibe lo que se entreno.",
+      "fila_validacion": "Schema",
+      "declarado_en": [
+        "validation.schema"
+      ],
+      "verificado": true,
+      "evidencia": "esquema compatible con feature_schema.json (poblacion de referencia, release)"
+    },
+    {
+      "id": "treatment_coding",
+      "nombre": "Tratamiento binario con ambos niveles",
+      "nivel": "empirico",
+      "ambito": "datos",
+      "funcion": "validation.schema_checks.check_treatment",
+      "descripcion": "Que treatment solo toma los valores permitidos por el contrato y aparecen ambos niveles; sin contraste entre tratados y controles no hay efecto que estimar.",
+      "fila_validacion": "Treatment coding",
+      "declarado_en": [
+        "causal.treatment_levels",
+        "validation.treatment"
+      ],
+      "verificado": true,
+      "evidencia": "valores [0, 1]; tasa de tratamiento 0.381 (poblacion de referencia, release)"
+    },
+    {
+      "id": "positivity",
+      "nombre": "Positividad (overlap)",
+      "nivel": "empirico",
+      "ambito": "identificacion",
+      "funcion": "validation.positivity_checks.check_positivity",
+      "descripcion": "Que ninguna unidad tiene probabilidad de tratamiento cercana a 0 o a 1. Se juzga con el propensity de una regresion logistica con cross-fitting, distinta del LassoCV que usa el estimador: es una verificacion bajo esa especificacion, no sobre la asignacion real. Umbrales en thresholds.yaml.",
+      "fila_validacion": "Positivity",
+      "declarado_en": [
+        "validation.positivity"
+      ],
+      "verificado": true,
+      "evidencia": "propensity en [0.109, 0.718]; observaciones extremas 0.0% (poblacion de referencia, release)"
+    },
+    {
+      "id": "domain",
+      "nombre": "Entrada dentro del dominio de referencia",
+      "nivel": "empirico",
+      "ambito": "datos",
+      "funcion": "monitoring.monitoring_report.check_domain",
+      "descripcion": "Que cada covariable de la entrada cae dentro del rango [q01, q99] observado en el entrenamiento; fuera de ese rango el modelo extrapola.",
+      "fila_validacion": "Operational domain",
+      "declarado_en": [
+        "validation.domain"
+      ],
+      "verificado": true,
+      "evidencia": "maxima fraccion de filas fuera de [q01, q99] de referencia en una variable: 2.0% (poblacion de referencia, release)"
+    },
+    {
+      "id": "drift",
+      "nombre": "Poblacion de entrada estable respecto de la referencia",
+      "nivel": "empirico",
+      "ambito": "datos",
+      "funcion": "monitoring.monitoring_report.check_drift",
+      "descripcion": "Que la distribucion de cada covariable (PSI) no se aleja de la poblacion de referencia; una poblacion distinta puede invalidar el efecto aprendido.",
+      "fila_validacion": "Distribution shift",
+      "declarado_en": [
+        "validation.drift"
+      ],
+      "verificado": true,
+      "evidencia": "PSI maximo 0.000 (x0); tasa de tratamiento 0.381 vs referencia 0.381 (poblacion de referencia, release)"
+    },
+    {
+      "id": "missingness",
+      "nombre": "Datos suficientemente completos",
+      "nivel": "empirico",
+      "ambito": "datos",
+      "funcion": "monitoring.monitoring_report.check_missingness",
+      "descripcion": "Que la tasa de nulos en las covariables esta bajo el umbral; la estimacion usa solo los casos completos.",
+      "fila_validacion": "Missingness",
+      "declarado_en": [
+        "validation.missingness"
+      ],
+      "verificado": true,
+      "evidencia": "maxima tasa de nulos en una covariable: 0.0% (poblacion de referencia, release)"
+    },
+    {
+      "id": "unobserved_confounding",
+      "nombre": "Ignorabilidad condicional (sin confusion no observada)",
+      "nivel": "indirecto",
+      "ambito": "identificacion",
+      "funcion": "validation.sensitivity_checks.check_sensitivity",
+      "descripcion": "No es verificable: se mide cuanta confusion no observada (valor de robustez de Cinelli y Hazlett) haria falta para anular el efecto. El resultado es ROBUST o REVIEW, nunca PASS, y no prueba que no haya confusion.",
+      "fila_validacion": "Unobserved confounding",
+      "declarado_en": [
+        "causal.pre_treatment_covariates",
+        "validation.sensitivity"
+      ],
+      "verificado": false,
+      "evidencia": "un confusor no observado tendria que explicar 27.0% de la varianza residual de T y de Y para anular la estimacion (22.7% para que el IC incluya 0). No prueba ausencia de confusion no observada.",
+      "covariables": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5",
+        "x6",
+        "x7",
+        "x8",
+        "x9",
+        "x10",
+        "x11",
+        "x12",
+        "x13",
+        "x14",
+        "x15",
+        "x16",
+        "x17",
+        "x18",
+        "x19",
+        "x20",
+        "x21",
+        "x22",
+        "x23",
+        "x24"
+      ]
+    },
+    {
+      "id": "refutation",
+      "nombre": "Efecto no espurio y estable (refutaciones)",
+      "nivel": "indirecto",
+      "ambito": "metodo",
+      "funcion": "causal_model.refutation.run_refutations",
+      "descripcion": "Evidencia del release: con un tratamiento placebo el efecto desaparece y una causa comun aleatoria o un subconjunto de datos no lo cambian. Se calcula sobre la poblacion de entrenamiento y no se recalcula con la entrada.",
+      "fila_validacion": "Refutation (release)",
+      "declarado_en": [
+        "validation.refutation"
+      ],
+      "verificado": false,
+      "evidencia": "placebo_treatment: PASS (p=0.476); random_common_cause: PASS (p=0.351); data_subset: PASS (p=0.289)"
+    },
+    {
+      "id": "dag",
+      "nombre": "Estructura causal (DAG) correcta",
+      "nivel": "no_verificable",
+      "ambito": "identificacion",
+      "funcion": "validation.causal_checks.check_graph_contract",
+      "descripcion": "Los datos no pueden confirmar el DAG. La funcion solo audita su coherencia interna: covariables del contrato, schema y nodos coinciden, y el ajuste cumple el criterio de puerta trasera sobre el grafo declarado.",
+      "fila_validacion": null,
+      "declarado_en": [
+        "causal.estimand"
+      ],
+      "verificado": false
+    },
+    {
+      "id": "sutva",
+      "nombre": "SUTVA (sin interferencia)",
+      "nivel": "no_verificable",
+      "ambito": "identificacion",
+      "funcion": "validation.sutva_checks.check_sutva",
+      "descripcion": "No es verificable con estos datos. check_sutva solo reporta ICC y saturacion por cluster si el contrato define cluster_column (hoy: null); sin esa variable no evalua nada y la ausencia de interferencia requiere justificacion sustantiva.",
+      "fila_validacion": "SUTVA diagnostics",
+      "declarado_en": [
+        "validation.sutva"
+      ],
+      "verificado": false
+    },
+    {
+      "id": "consistency",
+      "nombre": "Consistencia (definicion estable del tratamiento)",
+      "nivel": "no_verificable",
+      "ambito": "identificacion",
+      "funcion": "ninguna",
+      "descripcion": "Que 'tratado' significa lo mismo en el entrenamiento y en la entrada. Ninguna funcion lo evalua: la fila Versions & integrity (check_versions) audita artefactos (versiones, hashes y metadatos del modelo), no la consistencia causal del tratamiento.",
+      "fila_validacion": null,
+      "declarado_en": [
+        "versions.treatment_definition",
+        "versions.preprocessing",
+        "versions.causal_graph"
+      ],
+      "verificado": false
+    },
+    {
+      "id": "identification_in_input",
+      "nombre": "Identificacion valida en la poblacion de entrada",
+      "nivel": "no_verificable",
+      "ambito": "identificacion",
+      "funcion": "ninguna",
+      "descripcion": "El ATE re-estimado sobre la entrada supone que los supuestos de identificacion tambien valen en esa poblacion. Ningun check lo garantiza: dominio y drift solo detectan diferencias observables en las covariables.",
+      "fila_validacion": null,
+      "declarado_en": [],
+      "verificado": false
+    },
+    {
+      "id": "missing_at_random",
+      "nombre": "Datos faltantes ignorables (casos completos)",
+      "nivel": "no_verificable",
+      "ambito": "datos",
+      "funcion": "ninguna",
+      "descripcion": "Que descartar las filas con nulos (casos completos) no sesga el efecto. check_missingness solo mide la tasa de nulos; no contrasta el mecanismo de los datos faltantes.",
+      "fila_validacion": null,
+      "declarado_en": [],
+      "verificado": false
+    },
+    {
+      "id": "effect_homogeneity",
+      "nombre": "Homogeneidad del efecto (PLR con X=None)",
+      "nivel": "no_verificable",
+      "ambito": "metodo",
+      "funcion": "causal_model.estimator.fit_effect_model",
+      "descripcion": "El estimador se ajusta con X=None (especificacion parcialmente lineal): impone un unico efecto para todas las unidades. La app no contrasta esa homogeneidad; si el efecto es heterogeneo, el ATE es un promedio que no describe a subgrupos ni a individuos.",
+      "fila_validacion": null,
+      "declarado_en": [
+        "causal.estimator.method"
+      ],
+      "verificado": false
+    },
+    {
+      "id": "nuisance_estimation",
+      "nombre": "Nuisances bien estimadas (LassoCV, sin diagnostico de convergencia)",
+      "nivel": "no_verificable",
+      "ambito": "metodo",
+      "funcion": "causal_model.estimator.new_estimator",
+      "descripcion": "E[Y|X] y E[T|X] se estiman con LassoCV, con cross-fitting de K=5 folds. La app no calcula ningun diagnostico de la calidad ni de la convergencia de estas nuisances (R2 fuera de muestra, estabilidad entre folds, tasas de error).",
+      "fila_validacion": null,
+      "declarado_en": [
+        "causal.estimator.model_y",
+        "causal.estimator.model_t",
+        "causal.estimator.cv_folds"
+      ],
+      "verificado": false
+    },
+    {
+      "id": "asymptotic_normality",
+      "nombre": "Normalidad asintotica del estimador (IC 95%)",
+      "nivel": "no_verificable",
+      "ambito": "metodo",
+      "funcion": "causal_model.estimator.ate_summary",
+      "descripcion": "El IC 95% usa el error estandar y la aproximacion normal de ate_inference() de EconML. La app no verifica que la muestra sea suficiente para esa aproximacion ni la cobertura real del intervalo.",
+      "fila_validacion": null,
+      "declarado_en": [],
+      "verificado": false
+    }
+  ],
+  "poblacion": {
+    "variables_delimitadoras": {
+      "scenario_id": "synthetic_inference_ihdp_medium",
+      "split": "train"
+    },
+    "fuente": "data/dataset.csv, n=1200 (benchmark sintetico IHDP-style)"
+  },
+  "metricas": {
+    "efecto": 3.5273116325364198,
+    "ic95": [
+      2.8883452633749425,
+      4.166278001697897
+    ],
+    "n": 1200,
+    "spec": {
+      "learner": "LassoCV",
+      "K": 5,
+      "dml_variant": "DML2"
+    }
+  },
+  "validacion": {
+    "placebo": {
+      "paso": true,
+      "fecha": "2026-10-01"
+    }
+  },
+  "no_usar_para": [
+    "Decisiones clinicas o de politica publica reales",
+    "Poblaciones distintas del escenario synthetic_inference_ihdp_medium sin revisar el reporte de monitoring",
+    "Decisiones individuales sin considerar el intervalo de confianza (el efecto es un ATE)"
+  ],
+  "version": {
+    "modelo": "causal_dml v1.0.0",
+    "hash_datos_entrenamiento": "sha256:77d5af70ecc3826018b8d17fb1f063b1c877bfa8439981d4eea222a5958b2665"
+  }
+}

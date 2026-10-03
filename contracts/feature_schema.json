@@ -1,0 +1,199 @@
+{
+  "schema_version": "feature-schema-v1",
+  "description": "Esquema de entrada del servicio. Las covariables son pre-tratamiento; treatment y outcome no admiten nulos.",
+  "columns": [
+    {
+      "name": "x0",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x1",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x2",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x3",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x4",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x5",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x6",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x7",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x8",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x9",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x10",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x11",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x12",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x13",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x14",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x15",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x16",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x17",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x18",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x19",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x20",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x21",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x22",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x23",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "x24",
+      "dtype": "float",
+      "role": "pre_treatment_covariate",
+      "required": true,
+      "nullable": true
+    },
+    {
+      "name": "treatment",
+      "dtype": "int",
+      "role": "treatment",
+      "required": true,
+      "nullable": false,
+      "allowed_values": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "outcome",
+      "dtype": "float",
+      "role": "outcome",
+      "required": true,
+      "nullable": false
+    }
+  ]
+}
