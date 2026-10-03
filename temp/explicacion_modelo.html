@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>causal-ml-production · modelo, entrenamiento y puesta en produccion</title>
+<style>
+  :root{
+    --bg:#f6f8fb; --panel:#ffffff; --ink:#1b2430; --muted:#5b6b7c;
+    --primary:#1f77b4; --primary-soft:#e8f1f8;
+    --green:#2e8b57; --green-soft:#e7f4ec;
+    --amber:#c8871a; --amber-soft:#fdf3e2;
+    --red:#c0392b; --red-soft:#fbeceb;
+    --violet:#6c5ce7; --violet-soft:#efedfd;
+    --line:#e3e9f0; --code-bg:#f2f5f9;
+    --shadow:0 1px 2px rgba(16,32,64,.05),0 8px 24px rgba(16,32,64,.06);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  header.hero{
+    background:linear-gradient(135deg,#123a5c 0%, #1f77b4 60%, #2f9ede 100%);
+    color:#fff; padding:56px 28px 44px;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:0 22px}
+  .hero .wrap{max-width:1000px}
+  .kicker{font-size:.8rem;letter-spacing:.18em;text-transform:uppercase;opacity:.85;margin:0 0 10px}
+  h1{font-size:clamp(1.7rem,3.4vw,2.6rem);line-height:1.15;margin:0 0 12px;font-weight:750}
+  .hero p.lead{font-size:1.08rem;max-width:64ch;opacity:.96;margin:0 0 22px}
+  .badges{display:flex;flex-wrap:wrap;gap:8px}
+  .badge{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
+    padding:5px 12px;border-radius:999px;font-size:.82rem;font-weight:600;backdrop-filter:blur(2px)}
+  nav.toc{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);
+    border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+  nav.toc .wrap{display:flex;gap:6px;flex-wrap:wrap;padding-top:10px;padding-bottom:10px}
+  nav.toc a{color:var(--muted);text-decoration:none;font-size:.86rem;font-weight:600;
+    padding:6px 11px;border-radius:8px}
+  nav.toc a:hover{background:var(--primary-soft);color:var(--primary)}
+  main{max-width:1000px;margin:0 auto;padding:10px 22px 90px}
+  section{padding:40px 0 12px;border-top:1px solid var(--line)}
+  section:first-of-type{border-top:0}
+  .sec-num{color:var(--primary);font-weight:800;font-size:.82rem;letter-spacing:.14em;text-transform:uppercase}
+  h2{font-size:clamp(1.35rem,2.6vw,1.85rem);margin:.35rem 0 .6rem;font-weight:740;line-height:1.2}
+  h3{font-size:1.12rem;margin:1.9rem 0 .5rem;font-weight:700}
+  h4{font-size:.98rem;margin:1.2rem 0 .35rem;font-weight:700;color:#28323f}
+  p{margin:.6rem 0}
+  a.inline{color:var(--primary);text-decoration:none;border-bottom:1px solid rgba(31,119,180,.35)}
+  code{background:var(--code-bg);border:1px solid var(--line);border-radius:5px;
+    padding:1px 6px;font-size:.86em;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;color:#25405c}
+  pre{background:#0f2030;color:#dbe8f3;border-radius:12px;padding:16px 18px;overflow:auto;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.84rem;line-height:1.55;margin:1rem 0}
+  pre .c{color:#7fa8c9}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;box-shadow:var(--shadow);margin:1rem 0}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  @media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5fa;font-weight:700;color:#31424f;font-size:.82rem;letter-spacing:.02em}
+  tr:last-child td{border-bottom:0}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.78rem;font-weight:700;white-space:nowrap}
+  .pass{background:var(--green-soft);color:var(--green)}
+  .warn{background:var(--amber-soft);color:var(--amber)}
+  .block{background:var(--red-soft);color:var(--red)}
+  .info{background:var(--violet-soft);color:var(--violet)}
+  .callout{border-left:4px solid var(--primary);background:var(--primary-soft);
+    padding:12px 16px;border-radius:0 10px 10px 0;margin:1rem 0}
+  .callout.warnc{border-color:var(--amber);background:var(--amber-soft)}
+  .callout.redc{border-color:var(--red);background:var(--red-soft)}
+  .callout.greenc{border-color:var(--green);background:var(--green-soft)}
+  .callout strong{font-weight:750}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:1.2rem 0}
+  .flow .step{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 13px;
+    font-weight:700;font-size:.84rem;box-shadow:var(--shadow)}
+  .flow .step.hot{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .flow .arrow{color:var(--primary);font-weight:800}
+  .kpi{font-size:1.5rem;font-weight:800;color:var(--primary);line-height:1.1}
+  .kpi small{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-top:3px}
+  .level{border-radius:12px;padding:14px 16px;margin:12px 0;border:1px solid var(--line);background:#fff}
+  .level h4{margin-top:0}
+  .lv1{border-left:5px solid var(--green)} .lv2{border-left:5px solid var(--amber)} .lv3{border-left:5px solid var(--violet)}
+  ul.tight{margin:.4rem 0 .4rem 1.1rem;padding:0}
+  ul.tight li{margin:.28rem 0}
+  footer{background:#0f2030;color:#a9bed2;padding:34px 22px;text-align:center;font-size:.86rem}
+  footer a{color:#8fc4ea;text-decoration:none}
+  .muted{color:var(--muted)}
+  .svgbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:var(--shadow);overflow:auto}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">App de Streamlit · inferencia causal en produccion</p>
+    <h1>causal-ml-production</h1>
+    <p class="lead">Como se estima un efecto causal (ATE) con <em>double machine learning</em>, como se entrena y
+    versiona el artefacto, que se comprueba en cada ejecucion y como todo eso se pone en produccion en
+    Streamlit Community Cloud. El principio rector: <strong>primero se valida, despues se estima</strong>.</p>
+    <div class="badges">
+      <span class="badge">Python 3.12</span>
+      <span class="badge">Streamlit</span>
+      <span class="badge">EconML · LinearDML</span>
+      <span class="badge">DoWhy</span>
+      <span class="badge">scikit-learn</span>
+      <span class="badge">Datos sinteticos (IHDP-style)</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#resumen">1 · Resumen</a>
+    <a href="#modelo">2 · El modelo</a>
+    <a href="#entrenamiento">3 · El entrenamiento</a>
+    <a href="#tecnica">4 · Aspectos tecnicos</a>
+    <a href="#produccion">5 · Puesta en produccion</a>
+    <a href="#limites">6 · Que se verifica y que no</a>
+    <a href="#referencia">7 · Referencia</a>
+  </div>
+</nav>
+
+<main>
+
+<section id="resumen">
+  <div class="sec-num">Seccion 1</div>
+  <h2>El problema en una frase</h2>
+  <p>Los supuestos que hacen valido un modelo causal <strong>no desaparecen cuando lo desplegamos</strong>. Un
+  estimador entrenado hoy sigue siendo valido solo mientras la pregunta, el grafo causal, la definicion del
+  tratamiento, la poblacion de entrada y el soporte estadistico sigan siendo compatibles con lo que se entreno.
+  Este repositorio convierte esa condicion en un mecanismo ejecutable:</p>
+  <div class="flow">
+    <span class="step">SUPUESTO</span><span class="arrow">&rarr;</span>
+    <span class="step">CONTRATO</span><span class="arrow">&rarr;</span>
+    <span class="step">CHECK</span><span class="arrow">&rarr;</span>
+    <span class="step hot">GATE</span><span class="arrow">&rarr;</span>
+    <span class="step">EVIDENCIA</span><span class="arrow">&rarr;</span>
+    <span class="step">MONITORING</span><span class="arrow">&rarr;</span>
+    <span class="step">DECISION</span>
+  </div>
+  <p>Es un servicio de machine learning causal con <em>validez operacional</em>: estima el efecto <strong>solo si</strong>
+  los datos de entrada cumplen un contrato verificable. Si lo incumplen, <strong>bloquea</strong>; si hay condiciones
+  dudosas, estima <strong>con advertencia</strong>; si todo pasa, estima. El repositorio entero (modelo, contrato,
+  evidencia, perfil de referencia y CI) viaja junto con la app, de modo que <strong>cada estimacion es trazable a la
+  version que la produjo</strong>.</p>
+
+  <div class="grid g3">
+    <div class="card"><div class="kpi">3.527<small>ATE de referencia (poblacion de entrenamiento)</small></div></div>
+    <div class="card"><div class="kpi">[2.888, 4.166]<small>IC 95% · SE 0.326 · n = 1200</small></div></div>
+    <div class="card"><div class="kpi">11<small>verificaciones en cada ejecucion</small></div></div>
+  </div>
+
+  <div class="callout warnc"><strong>Sobre los datos.</strong> Material docente con datos <strong>sinteticos</strong>
+  (benchmark IHDP-style de 25 covariables pre-tratamiento). No debe usarse para decisiones clinicas ni de politica
+  publica reales. La app verifica condiciones operacionales; <strong>no demuestra</strong> ignorabilidad ni ausencia de
+  interferencia.</div>
+</section>
+
+<section id="modelo">
+  <div class="sec-num">Seccion 2</div>
+  <h2>El modelo</h2>
+
+  <h3>2.1 Que se estima: el ATE</h3>
+  <p>El estimando es el <strong>ATE</strong> (Average Treatment Effect), es decir <code>E[Y(1) &minus; Y(0)]</code>:
+  la diferencia media entre el resultado potencial bajo tratamiento y bajo control, sobre la poblacion. El
+  tratamiento (<code>treatment</code>) es binario y el resultado (<code>outcome</code>) es continuo.</p>
+  <p>Bajo la especificacion usada (regresion parcialmente lineal), el efecto es <strong>homogeneo</strong>: no hay efecto
+  individual (CATE). No sirve para focalizar subgrupos ni decisiones individuales.</p>
+
+  <h3>2.2 Identificacion: el DAG y la puerta trasera</h3>
+  <p>Para pasar de una correlacion a un efecto hace falta <em>identificar</em> el estimando. El contrato declara 25
+  covariables <strong>pre-tratamiento</strong> que son a la vez causa del tratamiento y del resultado (confusores
+  observados). De esa declaracion se construye un grafo aciclico dirigido (DAG):</p>
+  <div class="svgbox">
+    <svg viewBox="0 0 660 240" width="100%" role="img" aria-label="DAG causal: las covariables X afectan a T y a Y, y T afecta a Y">
+      <defs>
+        <marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 z" fill="#41607d"/>
+        </marker>
+      </defs>
+      <rect x="40" y="92" width="190" height="58" rx="12" fill="#eef3f8" stroke="#c6d6e6"/>
+      <text x="135" y="116" text-anchor="middle" font-family="Helvetica,Arial" font-size="14" font-weight="700" fill="#22405c">X : 25 covariables</text>
+      <text x="135" y="135" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#5b6b7c">x0 &hellip; x24 (pre-tratamiento)</text>
+      <rect x="430" y="20" width="180" height="56" rx="12" fill="#fde9d9" stroke="#ecc7a3"/>
+      <text x="520" y="45" text-anchor="middle" font-family="Helvetica,Arial" font-size="14" font-weight="700" fill="#8a4b12">T : treatment</text>
+      <text x="520" y="63" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#9a6a37">binario {0,1}</text>
+      <rect x="430" y="164" width="180" height="56" rx="12" fill="#e2f0d9" stroke="#bcd9ac"/>
+      <text x="520" y="189" text-anchor="middle" font-family="Helvetica,Arial" font-size="14" font-weight="700" fill="#2e6b32">Y : outcome</text>
+      <text x="520" y="207" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#4d7a52">continuo</text>
+      <line x1="230" y1="112" x2="428" y2="52" stroke="#41607d" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="230" y1="130" x2="428" y2="188" stroke="#41607d" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="520" y1="76" x2="520" y2="162" stroke="#41607d" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="300" y="72" font-family="Helvetica,Arial" font-size="11" fill="#5b6b7c">confusion observable</text>
+      <text x="300" y="176" font-family="Helvetica,Arial" font-size="11" fill="#5b6b7c">efecto causal</text>
+    </svg>
+  </div>
+  <p>El ajuste se justifica con el <strong>criterio de puerta trasera</strong> de Pearl, que el codigo comprueba con
+  NetworkX (<code>nx.is_d_separator</code>): el conjunto de ajuste no debe contener descendientes del tratamiento y debe
+  d-separar <code>T</code> y <code>Y</code> al eliminar las aristas que salen de <code>T</code>. En la practica, ajustar
+  por las 25 covariables bloquea todos los caminos de puerta trasera del DAG declarado. DoWhy confirma ademas, en el
+  release, que el estimando es <strong>identificable</strong> a partir de ese grafo (estrategia <em>backdoor</em>).</p>
+  <div class="callout"><strong>El DAG no lo validan los datos.</strong> El codigo solo audita su coherencia interna
+  (que las covariables, el schema y los nodos concuerden y que se cumpla la puerta trasera). Que la estructura causal
+  sea la correcta exige justificacion sustantiva, no la comprueba la app.</div>
+
+  <h3>2.3 El estimador: double machine learning (PLR)</h3>
+  <p>Se usa <code>econml.dml.LinearDML</code> con <code>X = None</code> y las 25 covariables como controles <code>W</code>.
+  Es una <strong>regresion parcialmente lineal (PLR)</strong> resuelta con <em>double machine learning</em>. La idea, en
+  palabras llanas:</p>
+  <ol class="tight">
+    <li>Se aprende a predecir el resultado <code>E[Y|X]</code> y el tratamiento <code>E[T|X]</code> usando las
+      covariables (nuisances), en este caso con <strong>LassoCV</strong>.</li>
+    <li>Se toman los <strong>residuales</strong> fuera de muestra de ambas predicciones: la parte de <code>Y</code> y
+      de <code>T</code> que las covariables <em>no</em> explican.</li>
+    <li>El efecto es la relacion entre esos dos residuales. Al separar la estimacion de las nuisances se elimina el sesgo
+      de regularizacion, que es el truco central del DML.</li>
+  </ol>
+  <p>El <strong>cross-fitting</strong> con 5 folds (variante DML2: la etapa final usa todos los residuales fuera de
+  muestra) evita el sobreajuste que ocurriria si se usaran los mismos datos para predecir y para estimar.</p>
+
+  <h3>2.4 Dos estimaciones que no deben confundirse</h3>
+  <div class="grid g2">
+    <div class="card">
+      <h4>Referencia</h4>
+      <p>El ATE del <strong>modelo desplegado</strong> (<code>causal_model.joblib</code>), entrenado con
+      <code>data/dataset.csv</code>. Es fijo: lo produce el release.</p>
+    </div>
+    <div class="card">
+      <h4>Reajustada sobre la entrada</h4>
+      <p>El <strong>mismo estimador reajustado</strong> sobre los casos completos de los datos de entrada. Solo se
+      ejecuta si la validacion no produjo <code>BLOCK</code>. La diferencia entre ambas es informacion, <strong>no una
+      prueba</strong>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="entrenamiento">
+  <div class="sec-num">Seccion 3</div>
+  <h2>El entrenamiento</h2>
+
+  <h3>3.1 Quien entrena y donde</h3>
+  <p>El entrenamiento ocurre <strong>offline</strong>, en el ciclo de release, no en la nube. En runtime la app solo
+  <em>carga</em> el artefacto. El ciclo tiene tres pasos en un orden estricto:</p>
+  <pre>python scripts/train_model.py                 <span class="c"># -&gt; artifacts/model/</span>
+python scripts/generate_reference_profile.py  <span class="c"># -&gt; artifacts/monitoring/</span>
+python scripts/validate_release.py            <span class="c"># -&gt; artifacts/validation/ + model_card.json</span></pre>
+
+  <h3>3.2 train_model.py paso a paso</h3>
+  <ol class="tight">
+    <li>Carga el contrato (<code>causal_contract.yaml</code>) y el dataset (<code>data/dataset.csv</code>, n = 1200).</li>
+    <li>Ajusta el estimador con <code>fit_effect_model</code>: <code>LinearDML</code> con <code>model_y</code> y
+      <code>model_t</code> = <code>LassoCV(max_iter=5000, random_state=42)</code>, <code>cv=5</code>, sobre los
+      <strong>casos completos</strong>.</li>
+    <li>Resume la inferencia con <code>ate_summary</code>: ATE, error estandar e intervalo de confianza al 95%
+      (<code>ate_inference()</code> de EconML).</li>
+    <li>Construye los metadatos (<code>build_metadata</code>) y guarda el bundle joblib + el SHA-256 del artefacto.</li>
+  </ol>
+  <div class="card">
+    <h4>Resultado del entrenamiento de referencia</h4>
+    <table>
+      <tr><th>Magnitud</th><th>Valor</th></tr>
+      <tr><td>ATE</td><td><strong>3.527</strong></td></tr>
+      <tr><td>Error estandar (SE)</td><td>0.326</td></tr>
+      <tr><td>IC 95%</td><td>[2.888, 4.166]</td></tr>
+      <tr><td>n de entrenamiento</td><td>1200</td></tr>
+      <tr><td>Estimador</td><td><code>econml.dml.LinearDML</code> · nuisances <code>LassoCV</code> · 5 folds</td></tr>
+    </table>
+  </div>
+
+  <h3>3.3 Que se guarda: el artefacto y su huella</h3>
+  <p>El artefacto es un <em>pickle</em> de EconML/scikit-learn: <code>causal_model.joblib</code>. Junto a el se
+  guarda <code>model_metadata.json</code>, que fija la trazabilidad:</p>
+  <ul class="tight">
+    <li><strong>Versiones de contrato:</strong> tratamiento, preprocesamiento y DAG (todas <code>1.0.0</code>).</li>
+    <li><strong>Especificacion del estimador:</strong> metodo, nuisances, folds y semilla.</li>
+    <li><strong>Hash de los datos</strong> (<code>training_data_sha256</code>) y <strong>hash del modelo</strong>
+      (<code>model_sha256</code>).</li>
+    <li><strong>Versiones de librerias al entrenar:</strong> Python 3.12.3, econml 0.17.0, scikit-learn 1.9.1,
+      numpy 2.4.6, pandas 3.0.6.</li>
+  </ul>
+  <div class="callout redc"><strong>Por que se fijan las versiones exactas.</strong> Un pickle es fragil: si
+  scikit-learn o numpy cambian, la carga puede comportarse distinto o romperse. Por eso
+  <code>requirements.txt</code> pinea esas versiones y <code>validation/consistency_checks.py</code> emite
+  <code>WARN</code> si la version mayor.menor difiere de la del entrenamiento, y <code>BLOCK</code> si el hash del
+  artefacto no coincide con el de los metadatos.</div>
+
+  <h3>3.4 La prueba sintetica: el estimador se gana el derecho a usarse</h3>
+  <p>Antes de publicar el release, <code>validation/synthetic.py</code> simula datos con un <strong>efecto verdadero
+  conocido</strong> (<code>tau = 2.0</code>) bajo confusion observable y comprueba que el estimador lo recupera. El
+  release exige un error absoluto &le; 0.40; en la practica el error es ~<strong>0.033</strong>. Es una prueba de
+  <em>recuperacion</em>: confirma que la maquinaria funciona cuando la respuesta es conocida.</p>
+</section>
+
+<section id="tecnica">
+  <div class="sec-num">Seccion 4</div>
+  <h2>Aspectos tecnicos, narrados</h2>
+  <p>Esta seccion recorre el como: el contrato ejecutable, las verificaciones que se hacen en cada ejecucion, y
+  como se traduce cada supuesto a una senal con umbral.</p>
+
+  <h3>4.1 El contrato causal</h3>
+  <p>Tres archivos en <code>contracts/</code> declaran <em>que debe ser verdad</em> para poder usar el modelo:</p>
+  <table>
+    <tr><th>Archivo</th><th>Declara</th></tr>
+    <tr><td><code>causal_contract.yaml</code></td><td>modelo y versiones (tratamiento, preprocesamiento, DAG),
+      tratamiento, outcome, estimando (ATE), covariables pre-tratamiento, especificacion del estimador y la
+      <strong>accion</strong> (<code>block</code>/<code>warn</code>/<code>required</code>) de cada regla.</td></tr>
+    <tr><td><code>feature_schema.json</code></td><td>columnas esperadas: tipo, rol, obligatoriedad, nulabilidad,
+      valores permitidos.</td></tr>
+    <tr><td><code>thresholds.yaml</code></td><td>umbrales numericos de PASS / WARN / BLOCK.</td></tr>
+  </table>
+
+  <h3>4.2 Los gates: PASS, WARN y BLOCK</h3>
+  <p><code>validate_runtime_data()</code> evalua <strong>11 filas</strong> y las muestra siempre en el panel
+  <em>Causal validity status</em>, antes de cualquier estimacion. El estado global es el <strong>peor</strong> entre
+  <code>PASS</code>, <code>WARN</code> y <code>BLOCK</code>; <code>REVIEW</code>/<code>ROBUST</code>/<code>SKIPPED</code>
+  son informativos.</p>
+  <table>
+    <tr><th>Verificacion</th><th>Que comprueba</th><th>Puede dar</th></tr>
+    <tr><td><strong>Schema</strong></td><td>columnas faltantes o desconocidas, tipos no numericos, nulos en
+      <code>treatment</code>/<code>outcome</code></td><td><span class="pill pass">PASS</span> <span class="pill block">BLOCK</span></td></tr>
+    <tr><td><strong>Treatment coding</strong></td><td>valores permitidos <code>{0,1}</code> y presencia de ambos niveles</td>
+      <td><span class="pill pass">PASS</span> <span class="pill block">BLOCK</span></td></tr>
+    <tr><td><strong>Versions &amp; integrity</strong></td><td>compatibilidad de versiones, hash del artefacto y versiones
+      de librerias</td><td><span class="pill pass">PASS</span> <span class="pill warn">WARN</span> <span class="pill block">BLOCK</span></td></tr>
+    <tr><td><strong>Graph / contract</strong></td><td>coherencia contrato&ndash;schema&ndash;DAG, criterio de puerta
+      trasera, estimando soportado</td><td><span class="pill pass">PASS</span> <span class="pill block">BLOCK</span></td></tr>
+    <tr><td><strong>Missingness</strong></td><td>tasa de nulos en covariables</td>
+      <td><span class="pill pass">PASS</span> <span class="pill warn">WARN</span> <span class="pill block">BLOCK</span></td></tr>
+    <tr><td><strong>Operational domain</strong></td><td>fraccion de filas fuera del rango de referencia</td>
+      <td><span class="pill pass">PASS</span> <span class="pill warn">WARN</span> <span class="pill block">BLOCK</span></td></tr>
+    <tr><td><strong>Positivity</strong></td><td>propensity con cross-fitting: min, max, extremos, ESS</td>
+      <td><span class="pill pass">PASS</span> <span class="pill warn">WARN</span> <span class="pill block">BLOCK</span></td></tr>
+    <tr><td><strong>Distribution shift</strong></td><td>PSI por covariable, KS aproximado, tasa de tratamiento</td>
+      <td><span class="pill pass">PASS</span> <span class="pill warn">WARN</span></td></tr>
+    <tr><td><strong>SUTVA diagnostics</strong></td><td>senales de interferencia si hay variable de agrupacion; si no,
+      <code>NOT PROVABLE</code></td><td><span class="pill info">REVIEW</span></td></tr>
+    <tr><td><strong>Refutation (release)</strong></td><td>refutaciones guardadas en el release</td>
+      <td><span class="pill pass">PASS</span> <span class="pill warn">WARN</span></td></tr>
+    <tr><td><strong>Unobserved confounding</strong></td><td>valor de robustez de la referencia</td>
+      <td><span class="pill pass">ROBUST</span> <span class="pill info">REVIEW</span></td></tr>
+  </table>
+  <p>Si el schema o el tratamiento son invalidos, las verificaciones que dependen de los datos se marcan
+  <code>SKIPPED</code>. La decision final es binaria:</p>
+  <pre>BLOCK  -&gt; EFFECT ESTIMATION: BLOCKED   <span class="c">(st.stop(), no se calcula nada)</span>
+WARN   -&gt; EFFECT ESTIMATION: ALLOWED con advertencias
+PASS   -&gt; EFFECT ESTIMATION: ALLOWED</pre>
+
+  <h3>4.3 Positividad (overlap)</h3>
+  <p>La positividad exige que ninguna unidad tenga probabilidad de tratamiento cercana a 0 o a 1, porque sin contraste
+  entre tratados y controles no hay efecto estimable. Se calcula el propensity score con una
+  <strong>regresion logistica con cross-fitting estratificado de 5 folds</strong> (distinta del <code>LassoCV</code> del
+  estimador: es una verificacion bajo <em>esa</em> especificacion). Se reportan minimo, maximo, cuantiles 1% y 99%,
+  fraccion de observaciones fuera de la banda y el <strong>ESS/n</strong> de los pesos IPW de tratados y controles. En
+  la poblacion de referencia el propensity esta en <strong>[0.11, 0.72]</strong>, lejos de ambos umbrales.</p>
+
+  <h3>4.4 Distribution shift: PSI y KS</h3>
+  <p>La comparacion no se hace contra la nada: el perfil de referencia guarda, por covariable, media, desviacion,
+  minimo, maximo, <code>q01</code>, <code>q99</code>, bordes y proporciones de deciles (para PSI), una malla de 101
+  cuantiles (para el KS aproximado) y la tasa de nulos, ademas de la tasa de tratamiento.</p>
+  <ul class="tight">
+    <li><strong>PSI por variable</strong> con los deciles de referencia: es la metrica que activa <code>WARN</code>.</li>
+    <li><strong>KS aproximado</strong>: estadistico de una muestra contra la CDF de referencia reconstruida con la malla
+      de cuantiles (informativo, pues no guarda la muestra completa).</li>
+    <li><strong>Tasa de tratamiento</strong>: un cambio de asignacion es senal de cambio del mecanismo de seleccion
+      aunque las covariables no se muevan.</li>
+  </ul>
+  <div class="callout"><strong>El drift no bloquea.</strong> El contrato fija <code>drift.action: warn</code>: incluso en
+  nivel critical, la app advierte pero estima. Bloquear la estimacion se reserva para dominio y nulos.</div>
+
+  <h3>4.5 SUTVA: interferencia entre unidades</h3>
+  <p>SUTVA supone que el resultado de una unidad no depende del tratamiento de otras. Si el contrato define una
+  variable de agrupacion (<code>cluster_column</code>), <code>validation/sutva_checks.py</code> reporta el ICC del
+  tratamiento y la saturacion por cluster como senal <em>indirecta</em> de derrames. Hoy el contrato la fija en
+  <code>null</code>: sin esa variable <strong>no es evaluable</strong>, asi que aparece como
+  <code>NOT PROVABLE</code> y exige justificacion sustantiva.</p>
+
+  <h3>4.6 Sensibilidad a confusion no observada</h3>
+  <p><code>validation/sensitivity_checks.py</code> calcula el <strong>valor de robustez</strong> de Cinelli y Hazlett
+  (2020): la fuerza minima (R2 parcial con <code>T</code> y con <code>Y</code>) que un confusor no observado
+  necesitaria para anular la estimacion. Se calcula sobre la regresion de residuales del DML
+  (<code>t = ATE/SE</code>, <code>dof = n &minus; p &minus; 2</code>). En la referencia: <strong>27.0%</strong>
+  (22.7% para que el IC incluya 0). Es una <em>aproximacion</em>, no una prueba de ignorabilidad.</p>
+
+  <h3>4.7 Refutaciones (DoWhy)</h3>
+  <p><code>causal_model/refutation.py</code> identifica el estimando con el DAG (backdoor) y estima con
+  <code>backdoor.econml.dml.LinearDML</code>. Corre <strong>tres refutadores</strong> con 50 simulaciones cada uno:</p>
+  <table>
+    <tr><th>Refutador</th><th>Que hace</th><th>Resultado (release)</th></tr>
+    <tr><td><code>placebo_treatment</code></td><td>sustituye el tratamiento por uno falso; el efecto debe desaparecer</td>
+      <td><span class="pill pass">PASS</span> p &asymp; 0.48</td></tr>
+    <tr><td><code>random_common_cause</code></td><td>anade una causa comun aleatoria; el efecto no debe cambiar</td>
+      <td><span class="pill pass">PASS</span> p &asymp; 0.35</td></tr>
+    <tr><td><code>data_subset</code></td><td>reestima sobre el 80% de los datos; el efecto debe ser estable</td>
+      <td><span class="pill pass">PASS</span> p &asymp; 0.29</td></tr>
+  </table>
+  <p>Un refutador <strong>pasa</strong> si su p-valor supera 0.05. El resultado se guarda en
+  <code>artifacts/validation/refutation_report.json</code> y la <strong>app solo lo presenta</strong>: no lo recalcula
+  sobre la entrada actual. Los tres refutadores estan marcados <code>required</code> en el contrato: si alguno falla, no
+  hay release.</p>
+
+  <h3>4.8 El catalogo de supuestos: 16 supuestos en tres niveles</h3>
+  <p>La pantalla <em>Supuestos del analisis</em> separa lo que se contrasta con los datos de lo que no, <strong>incluidos
+  los supuestos del metodo</strong>. Es una <strong>fuente unica</strong> (<code>validation/assumptions.py</code>):
+  <code>validate_release.py</code> lo escribe en la seccion <code>supuestos</code> de la model card y la app lo
+  renderiza sin texto propio. Solo informa: no cambia ningun veredicto ni los umbrales.</p>
+
+  <div class="level lv1">
+    <h4>Nivel 1 · Verificados empiricamente con los datos (6)</h4>
+    <p class="muted">Cada uno se contrasta con una funcion y un umbral en esta ejecucion.</p>
+    <ul class="tight">
+      <li><strong>Esquema de entrada</strong> conforme al contrato.</li>
+      <li><strong>Tratamiento binario</strong> con ambos niveles.</li>
+      <li><strong>Positividad (overlap).</strong></li>
+      <li><strong>Dominio de referencia</strong>: cada covariable cae en [q01, q99] del entrenamiento.</li>
+      <li><strong>Estabilidad de la poblacion</strong> (drift / PSI).</li>
+      <li><strong>Completitud</strong>: tasa de nulos bajo el umbral; la estimacion usa casos completos.</li>
+    </ul>
+  </div>
+
+  <div class="level lv2">
+    <h4>Nivel 2 · Evidencia indirecta (2)</h4>
+    <p class="muted">No se pueden comprobar; hay una medida que los hace mas o menos plausibles. Nunca devuelven PASS
+    por si solos.</p>
+    <ul class="tight">
+      <li><strong>Ignorabilidad condicional</strong> (sin confusion no observada): valor de robustez.</li>
+      <li><strong>Efecto no espurio y estable</strong>: refutaciones de DoWhy.</li>
+    </ul>
+  </div>
+
+  <div class="level lv3">
+    <h4>Nivel 3 · No verificables por la aplicacion (8)</h4>
+    <p class="muted">La app los supone o los declara, pero no los comprueba: requieren justificacion sustantiva.</p>
+    <ul class="tight">
+      <li><strong>Estructura causal (DAG) correcta.</strong></li>
+      <li><strong>SUTVA</strong> (sin interferencia).</li>
+      <li><strong>Consistencia</strong> de la definicion del tratamiento.</li>
+      <li><strong>Identificacion valida en la poblacion de entrada.</strong></li>
+      <li><strong>Datos faltantes ignorables</strong> (casos completos).</li>
+      <li><strong>Homogeneidad del efecto</strong> (PLR con <code>X=None</code>): la app no contrasta heterogeneidad.</li>
+      <li><strong>Nuisances bien estimadas</strong> (<code>LassoCV</code>, sin diagnostico de convergencia).</li>
+      <li><strong>Normalidad asintotica</strong> del IC 95%.</li>
+    </ul>
+  </div>
+
+  <h3>4.9 Los umbrales son criterios del proyecto, no leyes</h3>
+  <table>
+    <tr><th>Condicion</th><th>WARN</th><th>BLOCK</th></tr>
+    <tr><td>Propensity fuera de la banda</td><td>&lt; 0.05 o &gt; 0.95</td><td>&lt; 0.01 o &gt; 0.99</td></tr>
+    <tr><td>Nulos en una covariable</td><td>&ge; 5%</td><td>&ge; 20%</td></tr>
+    <tr><td>Filas fuera de [q01, q99] por variable</td><td>&ge; 10%</td><td>&ge; 30%</td></tr>
+    <tr><td>PSI de una covariable</td><td>&ge; 0.10</td><td>no bloquea (<code>drift.action: warn</code>)</td></tr>
+    <tr><td>Valor de robustez minimo exigido</td><td>0.05 (por debajo &rarr; REVIEW)</td><td>&mdash;</td></tr>
+    <tr><td>Prueba sintetica: error absoluto</td><td>&mdash;</td><td>&gt; 0.40</td></tr>
+  </table>
+  <div class="callout warnc"><strong>No existe un umbral universal de validez causal.</strong> El 0.05 de propensity
+  no es una ley estadistica; el PSI 0.10/0.25 viene de reglas practicas de la industria; la exigencia de robustez 0.05
+  es una decision. Quien adapte el proyecto debe revisarlos y justificarlos.</div>
+</section>
+
+<section id="produccion">
+  <div class="sec-num">Seccion 5</div>
+  <h2>La puesta en produccion</h2>
+
+  <h3>5.1 La arquitectura</h3>
+  <p>Hay tres entornos con responsabilidades distintas. Lo offline produce evidencia; lo cloud solo valida, decide y
+  estima con lo que ya viaja en el repositorio.</p>
+  <div class="svgbox">
+    <svg viewBox="0 0 920 300" width="100%" role="img" aria-label="Arquitectura: desarrollo local entrena y valida, GitHub versiona y ejecuta CI, Streamlit Cloud despliega la app">
+      <defs>
+        <marker id="a2" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 z" fill="#1f77b4"/>
+        </marker>
+      </defs>
+      <rect x="20" y="40" width="250" height="220" rx="14" fill="#f3f7fb" stroke="#c6d6e6"/>
+      <text x="145" y="68" text-anchor="middle" font-family="Helvetica,Arial" font-size="15" font-weight="700" fill="#22405c">Desarrollo local</text>
+      <text x="145" y="100" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#3d5670">train_model.py</text>
+      <text x="145" y="122" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#3d5670">generate_reference_profile.py</text>
+      <text x="145" y="144" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#3d5670">validate_release.py</text>
+      <text x="145" y="182" text-anchor="middle" font-family="Helvetica,Arial" font-size="11" fill="#5b6b7c">entrena · produce evidencia</text>
+      <text x="145" y="202" text-anchor="middle" font-family="Helvetica,Arial" font-size="11" fill="#5b6b7c">DoWhy · EconML</text>
+      <rect x="335" y="40" width="250" height="220" rx="14" fill="#f3f7fb" stroke="#c6d6e6"/>
+      <text x="460" y="68" text-anchor="middle" font-family="Helvetica,Arial" font-size="15" font-weight="700" fill="#22405c">GitHub</text>
+      <text x="460" y="100" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#3d5670">repositorio = release</text>
+      <text x="460" y="122" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#3d5670">modelo · contrato · evidencia</text>
+      <text x="460" y="144" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#3d5670">perfil de referencia</text>
+      <text x="460" y="182" text-anchor="middle" font-family="Helvetica,Arial" font-size="11" fill="#5b6b7c">CI (ci.yml)</text>
+      <text x="460" y="202" text-anchor="middle" font-family="Helvetica,Arial" font-size="11" fill="#5b6b7c">pytest + validate_release</text>
+      <rect x="650" y="40" width="250" height="220" rx="14" fill="#eef7f1" stroke="#bcd9ac"/>
+      <text x="775" y="68" text-anchor="middle" font-family="Helvetica,Arial" font-size="15" font-weight="700" fill="#2e6b32">Streamlit Cloud</text>
+      <text x="775" y="100" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#3d6a4a">ejecuta app.py</text>
+      <text x="775" y="122" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#3d6a4a">instala requirements.txt</text>
+      <text x="775" y="144" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#3d6a4a">valida -&gt; decide -&gt; estima</text>
+      <text x="775" y="182" text-anchor="middle" font-family="Helvetica,Arial" font-size="11" fill="#4d7a52">por sesion</text>
+      <text x="775" y="202" text-anchor="middle" font-family="Helvetica,Arial" font-size="11" fill="#4d7a52">historial opcional (SQL)</text>
+      <line x1="270" y1="150" x2="333" y2="150" stroke="#1f77b4" stroke-width="2.5" marker-end="url(#a2)"/>
+      <text x="301" y="140" text-anchor="middle" font-family="Helvetica,Arial" font-size="11" fill="#1f77b4">push</text>
+      <line x1="585" y1="150" x2="648" y2="150" stroke="#1f77b4" stroke-width="2.5" marker-end="url(#a2)"/>
+      <text x="616" y="140" text-anchor="middle" font-family="Helvetica,Arial" font-size="11" fill="#1f77b4">deploy</text>
+    </svg>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h4>Offline (release)</h4>
+      <p class="muted">Entrena y <em>produce</em> evidencia.</p>
+      <ul class="tight">
+        <li>Entrena <code>LinearDML</code> y guarda el artefacto + SHA-256.</li>
+        <li>DoWhy corre las refutaciones (50 simulaciones) y las guarda en JSON.</li>
+        <li>Sensibilidad, prueba sintetica y model card.</li>
+        <li>Genera el perfil de referencia (cuantiles, deciles, tasas).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Runtime (cloud)</h4>
+      <p class="muted">Solo <em>carga</em> y <em>presenta</em>; valida cada entrada.</p>
+      <ul class="tight">
+        <li>Carga contrato, modelo, perfil y evidencia del repositorio.</li>
+        <li>Presenta el JSON de refutaciones; no las recalcula.</li>
+        <li>Compara la entrada contra el perfil (PSI, KS, dominio, nulos).</li>
+        <li>Estima (<code>PASS</code>/<code>WARN</code>) o llama a <code>st.stop()</code> (<code>BLOCK</code>).</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>5.2 Decisiones de diseno que la nube hace necesarias</h3>
+  <ul class="tight">
+    <li><strong>El repositorio es el release.</strong> Streamlit Community Cloud despliega lo que hay en GitHub; por eso
+      modelo, contrato, perfil de referencia y evidencia estan versionados en <code>artifacts/</code> y
+      <code>contracts/</code>.</li>
+    <li><strong>Versiones exactas.</strong> Un cambio en <code>requirements.txt</code> provoca un redeploy completo;
+      las versiones pinneadas protegen el pickle. El CI comprueba la integridad del artefacto.</li>
+    <li><strong>La nube no garantiza disco.</strong> El disco local no es persistente, asi que <strong>no se usa un CSV
+      local como historial</strong>. Con <code>[history].url</code> en <code>st.secrets</code> el historial va a una
+      base SQL externa; sin eso vive solo en la sesion.</li>
+    <li><strong>La cache no es la validacion.</strong> <code>st.cache_resource</code> solo evita recargar contrato,
+      modelo y perfil; la validez la protege el contrato, que se evalua en <strong>cada ejecucion</strong>.</li>
+    <li><strong>Sin configuracion peligrosa.</strong> <code>.streamlit/config.toml</code> solo define el tema (CORS y
+      XSRF quedan en sus valores por defecto). No hay <code>packages.txt</code>: ninguna dependencia necesita paquetes
+      del sistema.</li>
+    <li><strong>Falla rapido y no sobrescribe.</strong> Si los datos o artefactos son inconsistentes,
+      <code>validate_release.py</code> sale con exit 1 en segundos, sin reemplazar la evidencia anterior.</li>
+  </ul>
+
+  <h3>5.3 Monitoring e historial</h3>
+  <pre><span class="c">poblacion de referencia -&gt; reference_profile.json -&gt; nueva poblacion -&gt; monitoring/drift.py -&gt; comparacion</span></pre>
+  <p>El boton <strong>Guardar esta evaluacion en el historial</strong> registra fecha, version del modelo, estado, n,
+  PSI maximo, KS maximo, tasa de tratamiento y ATE reajustado. Para que la afirmacion monitorizamos la degradacion en
+  produccion sea cierta hace falta persistencia externa:</p>
+  <pre>[history]
+url = <span style="color:#9fd0a0">"postgresql+psycopg2://usuario:clave@host:5432/base"</span></pre>
+  <p>Con PostgreSQL hay que agregar el driver (por ejemplo <code>psycopg2-binary</code>) a
+  <code>requirements.txt</code>. Sin <code>[history]</code> la app usa el historial de sesion y lo avisa.</p>
+
+  <h3>5.4 Integracion continua: el gate antes de la nube</h3>
+  <p>El workflow <code>.github/workflows/ci.yml</code> (job <code>validity-gate</code>, Python 3.12) corre en cada
+  pull request y push a <code>main</code>:</p>
+  <pre>pip install -r requirements-dev.txt
+pytest -q                       <span class="c"># 83 tests (grafo, estimador, schema, gates, monitoring, app)</span>
+python scripts/validate_release.py   <span class="c"># exit 1 si falta alguna condicion obligatoria</span></pre>
+  <p><code>validate_release.py</code> produce la evidencia y <strong>sale con exit 1 (no hay release)</strong> si falla
+  alguna condicion obligatoria:</p>
+  <table>
+    <tr><th>Condicion obligatoria</th><th>Artefacto que produce</th></tr>
+    <tr><td>hashes de dataset, modelo y perfil coherentes; banda de positividad del contrato igual a
+      <code>thresholds.yaml</code></td><td>&mdash;</td></tr>
+    <tr><td>la poblacion de referencia cumple su propio contrato (sin <code>BLOCK</code>)</td>
+      <td><code>validation_report.json</code></td></tr>
+    <tr><td>el estimando es identificable segun DoWhy</td><td><code>validation_report.json</code></td></tr>
+    <tr><td>refutaciones <code>required</code> superadas</td><td><code>refutation_report.json</code></td></tr>
+    <tr><td>analisis de sensibilidad presente</td><td><code>validation_report.json</code></td></tr>
+    <tr><td>prueba sintetica: error absoluto &le; 0.40</td><td><code>validation_report.json</code></td></tr>
+    <tr><td>model card valida contra su JSON Schema</td><td><code>model_card.json</code></td></tr>
+  </table>
+  <div class="callout greenc"><strong>Ciclo de release.</strong> <code>validate_release.py -&gt; EXIT 0 -&gt; merge /
+  deploy</code>; <code>EXIT 1 -&gt; NO RELEASE</code>. Para que el gate sea una barrera real conviene activar la
+  proteccion de rama en GitHub y exigir el check <code>validity-gate</code>.</div>
+
+  <h3>5.5 El flujo de la app en runtime</h3>
+  <div class="flow">
+    <span class="step">INPUT</span><span class="arrow">&rarr;</span>
+    <span class="step">VALIDATE</span><span class="arrow">&rarr;</span>
+    <span class="step">DECIDE</span><span class="arrow">&rarr;</span>
+    <span class="step">ESTIMATE</span><span class="arrow">&rarr;</span>
+    <span class="step hot">REPORT</span>
+  </div>
+  <ol class="tight">
+    <li><strong>Entrada:</strong> un escenario de demostracion o un CSV propio (columnas del
+      <code>feature_schema.json</code>).</li>
+    <li><strong>Estado de validez causal:</strong> las 11 verificaciones y la decision <code>ALLOWED</code> /
+      <code>BLOCKED</code>.</li>
+    <li><strong>Supuestos del analisis:</strong> los 16 supuestos en tres niveles (se muestran siempre, tambien con
+      <code>BLOCK</code>).</li>
+    <li><strong>Decision:</strong> si hay <code>BLOCK</code>, mensaje y <code>st.stop()</code>; si hay
+      <code>WARN</code>, aviso y continua.</li>
+    <li><strong>Reporte:</strong> DAG del contrato, panel de positividad, panel de monitoring, efecto estimado
+      (referencia vs entrada, con IC y sensibilidad) y refutaciones del release.</li>
+  </ol>
+  <p>El orden importa: <strong>primero se valida, despues se estima</strong>. Se evita explicitamente el antipatron
+  <code>INPUT -&gt; ESTIMATE -&gt; "parece que hubo drift"</code>.</p>
+
+  <h3>5.6 Escenarios de demostracion</h3>
+  <table>
+    <tr><th>Escenario (sidebar)</th><th>Desenlace esperado</th></tr>
+    <tr><td>Referencia (poblacion de entrenamiento)</td><td><span class="pill pass">PASS</span></td></tr>
+    <tr><td>Drift moderado (x0-x2 +0.4 sd)</td><td><span class="pill warn">WARN</span> (PSI ~0.17)</td></tr>
+    <tr><td>Drift severo (x0-x2 +1.0 sd)</td><td><span class="pill warn">WARN</span> critical (PSI ~0.97)</td></tr>
+    <tr><td>Fuera de dominio (x0-x2 por 3)</td><td><span class="pill block">BLOCK</span> por dominio operacional</td></tr>
+    <tr><td>Solapamiento roto (tratamiento = f(x0))</td><td><span class="pill block">BLOCK</span> por positividad</td></tr>
+    <tr><td>Nulos (10% en x5)</td><td><span class="pill warn">WARN</span>; se estima con casos completos</td></tr>
+    <tr><td>Esquema roto (columna <code>row_id</code>)</td><td><span class="pill block">BLOCK</span> por schema</td></tr>
+    <tr><td>Tratamiento invalido (5% con valor 2)</td><td><span class="pill block">BLOCK</span> por codificacion</td></tr>
+  </table>
+
+  <h3>5.7 Despliegue en GitHub y Streamlit Community Cloud</h3>
+  <pre>git init -b main
+git add .
+git commit -m <span style="color:#9fd0a0">"Primera version"</span>
+git remote add origin https://github.com/&lt;usuario&gt;/&lt;repositorio&gt;.git
+git push -u origin main</pre>
+  <ol class="tight">
+    <li>Entrar a <a class="inline" href="https://share.streamlit.io">share.streamlit.io</a> con la cuenta de GitHub y
+      elegir <strong>Create app</strong>.</li>
+    <li>Seleccionar el repositorio, la rama <code>main</code> y el archivo <code>app.py</code>.</li>
+    <li>En <em>Advanced settings</em>, elegir <strong>Python 3.12</strong>.</li>
+    <li>(Opcional) Pegar el contenido de <code>secrets.toml</code> en <em>Secrets</em> para un historial persistente.</li>
+    <li>Desplegar. La primera carga tarda porque instala <code>econml</code> y <code>dowhy</code>.</li>
+  </ol>
+  <p>Un push a <code>main</code> redespliega la app y un cambio en <code>requirements.txt</code> provoca un redeploy
+  completo. Para que el CI sea una barrera real, activar la proteccion de rama en GitHub y exigir el check
+  <code>validity-gate</code>.</p>
+</section>
+
+<section id="limites">
+  <div class="sec-num">Seccion 6</div>
+  <h2>Que se verifica y que no</h2>
+  <p>Por eso la app no muestra un unico CAUSAL VALIDITY = PASS: muestra checks operacionales, supuestos documentados,
+  refutacion, sensibilidad y la lista de supuestos que no se pueden verificar.</p>
+  <table>
+    <tr><th>Categoria</th><th>Elementos</th><th>Mecanismo</th></tr>
+    <tr><td><strong>Comprobable operacionalmente</strong></td>
+      <td>schema, codificacion del tratamiento, rangos, nulos, overlap, propensity extremo, distribution shift,
+        versiones e integridad del artefacto</td>
+      <td>checks que permiten, advierten o bloquean</td></tr>
+    <tr><td><strong>Evaluable con evidencia indirecta</strong></td>
+      <td>interferencia (SUTVA), sensibilidad a confusion no observada, estabilidad</td>
+      <td>diagnosticos y refutaciones; resultado <code>REVIEW</code> / <code>ROBUST</code>, nunca <code>PASS</code></td></tr>
+    <tr><td><strong>No demostrable por una app</strong></td>
+      <td>ignorabilidad verdadera, ausencia absoluta de interferencia, validez causal universal</td>
+      <td>exigen justificacion sustantiva</td></tr>
+  </table>
+  <div class="callout warnc">
+    <strong>Limitaciones conocidas.</strong>
+    <ul class="tight">
+      <li>Datos sinteticos: no hay validez externa en juego.</li>
+      <li>Efecto homogeneo bajo PLR: no apto para decisiones individuales ni focalizacion.</li>
+      <li>El KS de monitoring es aproximado (el perfil guarda cuantiles, no la muestra).</li>
+      <li>El valor de robustez se aplica a los residuales del DML y es una aproximacion.</li>
+      <li>Sin base externa, el historial no sobrevive a la sesion.</li>
+      <li>En este escenario el IC contiene el ATE verdadero del simulador (3.97), pero la estimacion puntual lo
+        subestima en ~0.44.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="referencia">
+  <div class="sec-num">Seccion 7</div>
+  <h2>Referencia de archivos del repositorio</h2>
+  <p>Donde vive cada pieza. La estructura sigue la cadena <code>SUPUESTO -&gt; CONTRATO -&gt; CHECK -&gt; GATE -&gt; EVIDENCIA -&gt; MONITORING -&gt; DECISION</code>.</p>
+  <table>
+    <tr><th>Ruta</th><th>Rol</th></tr>
+    <tr><td><code>app.py</code></td><td>Punto de entrada: INPUT -&gt; VALIDATE -&gt; DECIDE -&gt; ESTIMATE -&gt; REPORT.</td></tr>
+    <tr><td><code>requirements.txt</code></td><td>Dependencias del runtime (lo que instala Streamlit Cloud).</td></tr>
+    <tr><td><code>requirements-dev.txt</code></td><td>Runtime + pytest + dowhy + jsonschema (CI y scripts).</td></tr>
+    <tr><td><code>contracts/causal_contract.yaml</code></td><td>Contrato ejecutable: estimando, tratamiento, DAG, acciones.</td></tr>
+    <tr><td><code>contracts/feature_schema.json</code></td><td>Schema de entrada: columnas, tipos, nulabilidad.</td></tr>
+    <tr><td><code>contracts/thresholds.yaml</code></td><td>Umbrales numericos de PASS / WARN / BLOCK.</td></tr>
+    <tr><td><code>contracts/causal-model-card-v1.schema.json</code></td><td>JSON Schema de la model card.</td></tr>
+    <tr><td><code>causal_model/estimator.py</code></td><td>LinearDML (PLR/DML), metadatos, hashes y persistencia.</td></tr>
+    <tr><td><code>causal_model/graph.py</code></td><td>DAG derivado del contrato y criterio de puerta trasera.</td></tr>
+    <tr><td><code>causal_model/identification.py</code></td><td>Identificacion backdoor con DoWhy (release).</td></tr>
+    <tr><td><code>causal_model/propensity.py</code></td><td>Propensity con cross-fitting y resumen de overlap.</td></tr>
+    <tr><td><code>causal_model/refutation.py</code></td><td>Refutadores de DoWhy (release).</td></tr>
+    <tr><td><code>validation/release_gate.py</code></td><td>Nucleo de los gates PASS/WARN/BLOCK (runtime y release).</td></tr>
+    <tr><td><code>validation/results.py</code></td><td>Estados y severidades; grupos operacional e indirecto.</td></tr>
+    <tr><td><code>validation/schema_checks.py</code></td><td>Schema y codificacion del tratamiento.</td></tr>
+    <tr><td><code>validation/consistency_checks.py</code></td><td>Versiones e integridad del artefacto.</td></tr>
+    <tr><td><code>validation/causal_checks.py</code></td><td>Coherencia contrato&ndash;DAG y puerta trasera.</td></tr>
+    <tr><td><code>validation/positivity_checks.py</code></td><td>Positividad contra los umbrales del contrato.</td></tr>
+    <tr><td><code>validation/sensitivity_checks.py</code></td><td>Valor de robustez (Cinelli y Hazlett, 2020).</td></tr>
+    <tr><td><code>validation/sutva_checks.py</code></td><td>Diagnosticos de interferencia (si hay cluster).</td></tr>
+    <tr><td><code>validation/synthetic.py</code></td><td>Prueba de recuperacion con efecto conocido.</td></tr>
+    <tr><td><code>validation/model_card.py</code></td><td>Construccion y validacion de la model card (jsonschema).</td></tr>
+    <tr><td><code>validation/assumptions.py</code></td><td>Catalogo unico de los 16 supuestos en 3 niveles.</td></tr>
+    <tr><td><code>monitoring/reference_profile.py</code></td><td>Perfil de referencia (cuantiles, deciles, malla KS).</td></tr>
+    <tr><td><code>monitoring/runtime_profile.py</code></td><td>Perfil de la poblacion de entrada.</td></tr>
+    <tr><td><code>monitoring/drift.py</code></td><td>PSI por deciles y KS aproximado contra la referencia.</td></tr>
+    <tr><td><code>monitoring/monitoring_report.py</code></td><td>Reporte de dominio, nulos y drift.</td></tr>
+    <tr><td><code>monitoring/history.py</code></td><td>Historial: sesion o base SQL externa (st.secrets).</td></tr>
+    <tr><td><code>components/</code></td><td>Paneles de Streamlit (validez, supuestos, DAG, positividad, efecto, refutacion, monitoring) y entrada de datos.</td></tr>
+    <tr><td><code>scripts/train_model.py</code></td><td>Entrena el estimador y guarda el artefacto.</td></tr>
+    <tr><td><code>scripts/generate_reference_profile.py</code></td><td>Genera el perfil de la poblacion de referencia.</td></tr>
+    <tr><td><code>scripts/validate_release.py</code></td><td>Produce la evidencia del release; exit 1 si falla.</td></tr>
+    <tr><td><code>artifacts/model/</code></td><td>causal_model.joblib, model_metadata.json, model_card.json.</td></tr>
+    <tr><td><code>artifacts/validation/</code></td><td>validation_report.json, refutation_report.json.</td></tr>
+    <tr><td><code>artifacts/monitoring/</code></td><td>reference_profile.json.</td></tr>
+    <tr><td><code>data/dataset.csv</code></td><td>Split train sintetico (IHDP-style, n = 1200).</td></tr>
+    <tr><td><code>docs/</code></td><td>Supuestos, traduccion operacional, degradacion, MLOps, metodologia y model card.</td></tr>
+    <tr><td><code>tests/</code></td><td>83 tests: grafo, estimador, schema, gates, monitoring, release, supuestos y app.</td></tr>
+    <tr><td><code>.github/workflows/ci.yml</code></td><td>CI: pytest + validate_release (check validity-gate).</td></tr>
+    <tr><td><code>.streamlit/config.toml</code></td><td>Configuracion de la app: solo el tema.</td></tr>
+  </table>
+</section>
+</main>
+
+<footer>
+  <p>causal-ml-production · ML causal en la nube con validez operacional</p>
+  <p>Material docente con datos sinteticos (benchmark IHDP-style). No usar para decisiones clinicas ni de politica
+    publica reales.</p>
+  <p>Licencia MIT · Datos derivados del Causal Benchmark Ecosystem.</p>
+</footer>
+
+</body>
+</html>

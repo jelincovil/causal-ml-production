@@ -428,6 +428,7 @@ estimacion puntual lo subestima en ~0.44.
 | [`docs/04_mlops_validez.md`](docs/04_mlops_validez.md) | release, CI, despliegue y secrets |
 | [`docs/methodology.md`](docs/methodology.md) | estimador, refutaciones, sensibilidad, limites |
 | [`docs/model_card.md`](docs/model_card.md) | model card legible (la machine-readable esta en `artifacts/model/model_card.json`) |
+| [`temp/explicacion_modelo.html`](temp/explicacion_modelo.html) | explicacion narrada del modelo, el entrenamiento y la puesta en produccion (HTML autocontenido) |
 
 **Origen.** Resume lo esencial de la Serie B del curso *Sistema de Inteligencia Causal*: el estimador PLR/DML y el
 servicio de B1, la model card, el schema y el CI de B2 y el monitoreo de drift de B4, bajo una arquitectura de validez
