@@ -1,2 +1,5 @@
 -r requirements.txt
 pytest==9.1.1
+# Solo para scripts/ y tests/ (no los usa app.py): validacion de release y model card.
+dowhy==0.14
+jsonschema==4.26.0
